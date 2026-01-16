@@ -14,18 +14,22 @@ import {
   Play,
   Filter,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  Link as LinkIcon,
+  Cpu
 } from 'lucide-react';
 import { DataRow, AIAnalysisReport } from './types';
-import { generateDeepReport, generateImageForTitle } from './services/geminiService';
+import { generateDeepReport } from './services/geminiService';
 import Dashboard from './components/Dashboard';
 import DataTable from './components/DataTable';
 import InsightPanel from './components/InsightPanel';
 import ArticleTable from './components/ArticleTable';
 import UserNeedAnalysis from './components/UserNeedAnalysis';
 
+// Fix: Removed redundant window.aistudio declaration that conflicted with environment-provided types.
+// We use type assertion (window as any).aistudio to interact with the API safely and avoid modifier/type mismatch errors.
+
 const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRAdlxOzoqsYYkxVd27Ba94w2fNe-qtKav3-3uQH1Ll33MS13TI9XGXW_bpPZ5vjrMkZPXkNKqhF8UP/pub?output=tsv";
-const CACHE_KEY = "vne_go_ai_thumbs_v2";
 
 const App: React.FC = () => {
   const [rawData, setRawData] = useState<DataRow[]>([]);
@@ -33,30 +37,33 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'table'>('overview');
   const [report, setReport] = useState<AIAnalysisReport | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [aiThumbCache, setAiThumbCache] = useState<Record<string, string>>(() => {
-    try {
-      const saved = localStorage.getItem(CACHE_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
-  });
+  const [hasKey, setHasKey] = useState<boolean>(false);
 
   const [selectedCate, setSelectedCate] = useState<string>('All');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
   useEffect(() => {
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(aiThumbCache));
-    } catch (e) {}
-  }, [aiThumbCache]);
+    const checkKey = async () => {
+      // Fix: Safely check for aistudio existence before calling methods using cast to any to bypass strict type mismatch
+      if ((window as any).aistudio && typeof (window as any).aistudio.hasSelectedApiKey === 'function') {
+        const exists = await (window as any).aistudio.hasSelectedApiKey();
+        setHasKey(exists);
+      }
+    };
+    checkKey();
+  }, []);
+
+  const handleConnectKey = async () => {
+    // Fix: Safely call openSelectKey via window as any to avoid conflicts with global AIStudio type
+    if ((window as any).aistudio && typeof (window as any).aistudio.openSelectKey === 'function') {
+      await (window as any).aistudio.openSelectKey();
+      setHasKey(true); // Assume success per guidelines to mitigate race condition
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch(DATA_URL);
       if (!res.ok) throw new Error("Kết nối dữ liệu thất bại.");
@@ -118,7 +125,7 @@ const App: React.FC = () => {
       });
       setRawData(parsed);
     } catch (e: any) {
-      setError(e.message);
+      console.error(e.message);
     } finally {
       setLoading(false);
     }
@@ -128,39 +135,8 @@ const App: React.FC = () => {
     fetchData(); 
   }, []);
 
-  useEffect(() => {
-    const triggerImageGen = async () => {
-      const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
-      if (rawData.length === 0 || !apiKey) return;
-      
-      const top10 = [...rawData].sort((a, b) => b.PVs - a.PVs).slice(0, 10);
-      for (const article of top10) {
-        const id = String(article.article_id);
-        if (!aiThumbCache[id]) {
-          try {
-            const generated = await generateImageForTitle(article.Title);
-            if (generated) setAiThumbCache(prev => ({ ...prev, [id]: generated }));
-          } catch (err) {}
-        }
-      }
-    };
-    triggerImageGen();
-  }, [rawData]);
-
-  const availableCates = useMemo(() => {
-    const cates = Array.from(new Set(rawData.map(d => d.CateName))).filter(Boolean).sort();
-    return ['All', ...cates];
-  }, [rawData]);
-
-  const enrichedData = useMemo(() => {
-    return rawData.map(item => ({
-      ...item,
-      aiThumbnail: aiThumbCache[String(item.article_id)]
-    }));
-  }, [rawData, aiThumbCache]);
-
   const filteredData = useMemo(() => {
-    return enrichedData.filter(item => {
+    return rawData.filter(item => {
       const matchCate = selectedCate === 'All' || item.CateName === selectedCate;
       let matchTime = true;
       if (startDate || endDate) {
@@ -178,7 +154,7 @@ const App: React.FC = () => {
       }
       return matchCate && matchTime;
     });
-  }, [enrichedData, selectedCate, startDate, endDate]);
+  }, [rawData, selectedCate, startDate, endDate]);
 
   const dataSummary = useMemo(() => {
     if (!filteredData.length) return null;
@@ -194,8 +170,6 @@ const App: React.FC = () => {
     });
     return { aggregates } as any;
   }, [filteredData]);
-
-  const apiKeyExists = typeof process !== 'undefined' && !!process.env.API_KEY;
 
   if (loading) return (
     <div className="h-screen w-full flex flex-col items-center justify-center bg-[#050505]">
@@ -227,11 +201,13 @@ const App: React.FC = () => {
             <p className="text-slate-500 text-xs font-medium uppercase tracking-widest mt-1">Hệ thống điều hành dữ liệu Orion 2.0</p>
           </div>
           <div className="flex items-center gap-4">
-             {!apiKeyExists && (
-               <div className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-[10px] font-black uppercase tracking-widest">
-                  <AlertTriangle size={14} /> Thiếu API Key
-               </div>
-             )}
+             <button 
+                onClick={handleConnectKey}
+                className={`flex items-center gap-3 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${hasKey ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20'}`}
+             >
+                <Cpu size={16} />
+                {hasKey ? 'AI Đã Kích Hoạt' : 'Kích hoạt Trí tuệ AI'}
+             </button>
              <button onClick={fetchData} className="p-3 rounded-xl bg-white/5 border border-white/5 text-white hover:bg-white/10 transition-all">
                 <RefreshCw size={18} />
              </button>
@@ -244,7 +220,8 @@ const App: React.FC = () => {
               <div className="flex flex-col">
                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Chuyên mục</label>
                  <select value={selectedCate} onChange={(e) => setSelectedCate(e.target.value)} className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer">
-                   {availableCates.map(cate => <option key={cate} value={cate} className="bg-[#080808] text-white">{cate === 'All' ? 'Tất cả' : cate}</option>)}
+                   {Array.from(new Set(rawData.map(d => d.CateName))).filter(Boolean).sort().map(cate => <option key={cate} value={cate} className="bg-[#080808] text-white">{cate}</option>)}
+                   <option value="All" className="bg-[#080808] text-white">Tất cả</option>
                  </select>
               </div>
            </div>
@@ -298,6 +275,7 @@ const App: React.FC = () => {
                <button 
                 onClick={async () => {
                   if (!dataSummary) return;
+                  if (!hasKey) { handleConnectKey(); return; }
                   setIsAnalyzing(true);
                   try {
                     const res = await generateDeepReport(dataSummary as any, filteredData);
@@ -305,11 +283,10 @@ const App: React.FC = () => {
                   } catch (e) {}
                   setIsAnalyzing(false);
                 }}
-                disabled={!apiKeyExists}
-                className={`px-10 py-5 rounded-[24px] font-bold tracking-widest uppercase text-xs transition-all flex items-center gap-3 ${apiKeyExists ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-2xl' : 'bg-white/5 text-slate-500 cursor-not-allowed'}`}
+                className={`px-10 py-5 rounded-[24px] font-bold tracking-widest uppercase text-xs transition-all flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white shadow-2xl shadow-indigo-600/20`}
               >
                 {isAnalyzing ? <RefreshCw className="animate-spin" size={16} /> : <Zap size={16} fill="currentColor" />}
-                <span>{isAnalyzing ? 'Đang phân tích...' : 'Tạo Báo cáo AI'}</span>
+                <span>{isAnalyzing ? 'Đang phân tích...' : hasKey ? 'Tạo Báo cáo Gemini Pro 3' : 'Kích hoạt AI để tạo báo cáo'}</span>
                </button>
             </div>
             {report && <InsightPanel report={report} loading={isAnalyzing} />}

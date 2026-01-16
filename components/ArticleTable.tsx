@@ -44,6 +44,20 @@ interface ArticleTableProps {
   data: DataRow[];
 }
 
+// Deterministic placeholder library
+const FALLBACK_IMAGES = [
+  "https://images.unsplash.com/photo-1518186239717-2e9b69d7744a?q=80&w=1974&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1504868584819-f8eec04216ef?q=80&w=2070&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2015&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1551288049-bbda3865c19c?q=80&w=2070&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1454165833767-027eeed15c3e?q=80&w=2070&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?q=80&w=2006&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=1974&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1531297484001-80022131f5a1?q=80&w=2020&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1504270997636-07ddfbd48945?q=80&w=2071&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
+];
+
 const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState<keyof DataRow>('PVs');
@@ -108,7 +122,26 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
     return filtered;
   }, [data, search, sortField, sortDir]);
 
-  const topTen = allProcessed.slice(0, 10);
+  // Specific requirement: replace thumb for position #3 (index 2)
+  const topTen = useMemo(() => {
+    return allProcessed.slice(0, 10).map((item, idx) => {
+      let thumb = item.thumbnail;
+      
+      // Use deterministic fallback from library if no thumb is present
+      if (!thumb) {
+        const idStr = String(item.article_id);
+        const hash = idStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        thumb = FALLBACK_IMAGES[hash % FALLBACK_IMAGES.length];
+      }
+
+      if (idx === 2) {
+        thumb = "https://lh3.googleusercontent.com/gg-dl/ABS2GSmCmrmnP8FGMctIIMZQ60A58YGHPgMXkCtmECbBrJ_oP8raaqysuSBpr64LrjjNoMvEOWJYlqizVMQw2pRrCR_YcBdksH5L_kuPVnLRPky-MEyokg6fT6cbmoFmF6dbdn_1eR0_mxQdvTU53QEUfRrdr_KgEhu7MajHM5q_3zOqzuY8aA=s1024-rj";
+      }
+      
+      return { ...item, thumbnail: thumb };
+    });
+  }, [allProcessed]);
+
   const theRest = allProcessed.slice(10, 50);
 
   const topTenMetrics = useMemo(() => {
@@ -212,8 +245,7 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
           const isTopThree = idx < 3;
           const displayNum = idx + 1;
           const isTwoDigits = displayNum >= 10;
-          // Priority AI thumbnail if available
-          const currentThumb = row.aiThumbnail || row.thumbnail;
+          const currentThumb = row.thumbnail;
           const category = getContentCategory(row);
           return (
             <div key={idx} className="relative group cursor-pointer h-full" onClick={() => handleArticleClick(row)}>
@@ -271,9 +303,8 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
           <div className="absolute inset-0 bg-black/90 backdrop-blur-3xl" onClick={() => setSelectedArticle(null)}></div>
           <div className="glass-card relative z-10 w-full max-w-7xl h-full max-h-[95vh] rounded-[48px] overflow-hidden flex flex-col md:flex-row shadow-[0_0_100px_rgba(99,102,241,0.2)] animate-in zoom-in-95 duration-300">
              <div className="w-full md:w-[35%] h-[300px] md:h-full relative shrink-0">
-                {/* Priority AI thumbnail in modal as well */}
-                {(selectedArticle.aiThumbnail || selectedArticle.thumbnail) ? (
-                  <img src={selectedArticle.aiThumbnail || selectedArticle.thumbnail} className="w-full h-full object-cover" alt="" />
+                {selectedArticle.thumbnail ? (
+                  <img src={selectedArticle.thumbnail} className="w-full h-full object-cover" alt="" />
                 ) : (
                   <div className={`w-full h-full bg-gradient-to-br ${getPlaceholderStyle(selectedArticle.article_id)} flex items-center justify-center`}><BarChart size={120} className="text-white/10" /></div>
                 )}
@@ -372,12 +403,30 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
           </div>
           <div className={`overflow-hidden transition-all duration-700 ease-in-out ${isExpanded ? 'max-h-[8000px] opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="glass-card rounded-[48px] overflow-hidden border border-white/5 bg-[#080808]/80 backdrop-blur-3xl"><div className="overflow-x-auto"><table className="w-full text-left border-collapse"><thead><tr className="bg-white/[0.04]"><th className="px-10 py-8 text-[11px] font-black text-slate-500 uppercase tracking-widest w-[160px]">Thứ tự</th><th className="px-10 py-8 text-[11px] font-black text-slate-500 uppercase tracking-widest w-[40%]">Nội dung Phân tích</th>{[{ label: 'Lượt xem', key: 'PVs' }, { label: 'Plays', key: 'Total_Play' }, { label: 'Users', key: 'User' }, { label: 'Consumption', key: 'Consumption_Rate' }].map(col => (<th key={col.key} className="px-10 py-8 text-[11px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-indigo-400 transition-colors" onClick={() => toggleSort(col.key as keyof DataRow)}><div className="flex items-center gap-2">{col.label}{sortField === col.key && (<span className="text-indigo-500">{sortDir === 'desc' ? '↓' : '↑'}</span>)}</div></th>))}</tr></thead><tbody className="divide-y divide-white/5">
-                {theRest.map((row, idx) => (<tr key={idx} className="hover:bg-white/[0.03] transition-all group cursor-pointer" onClick={() => handleArticleClick(row)}><td className="px-10 py-8"><div className="flex items-center gap-5"><span className="text-base font-black text-slate-700 w-8">#{idx + 11}</span><span className="px-3 py-1.5 bg-white/5 rounded-xl text-[10px] font-mono font-bold text-indigo-300 border border-white/5">{row.article_id}</span></div></td><td className="px-10 py-8"><div className="flex flex-col"><span className="text-[15px] font-bold text-white truncate max-w-xl group-hover:text-indigo-400 transition-all flex items-center gap-3">{row.Title}<ExternalLink size={14} className="opacity-0 group-hover:opacity-100 transition-opacity text-indigo-500 shrink-0" /></span><div className="flex items-center gap-4 mt-2"><span className="text-[10px] text-indigo-500/80 font-black uppercase tracking-widest">{row.CateName}</span><span className="w-1.5 h-1.5 bg-slate-800 rounded-full"></span><div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black text-white uppercase tracking-widest ${getContentCategory(row).color}`}>{getContentCategory(row).label}</div></div></div></td><td className="px-10 py-8 text-sm font-black text-slate-300">{row.PVs.toLocaleString()}</td><td className="px-10 py-8 text-sm font-medium text-slate-400">{row.Total_Play.toLocaleString()}</td><td className="px-10 py-8 text-sm font-medium text-slate-400"><div className="flex items-center gap-2"><Users size={16} className="text-slate-600" />{row.User.toLocaleString()}</div></td><td className="px-10 py-8"><div className="flex items-center gap-4"><span className="text-sm font-black text-emerald-400 w-12">{Math.round(row.Consumption_Rate * 100)}%</span><div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden max-w-[80px]"><div className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500" style={{ width: `${row.Consumption_Rate * 100}%` }}></div></div></div></td></tr>))}
+                {theRest.map((row, idx) => {
+                  let thumb = row.thumbnail;
+                  if (!thumb) {
+                    const idStr = String(row.article_id);
+                    const hash = idStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                    thumb = FALLBACK_IMAGES[hash % FALLBACK_IMAGES.length];
+                  }
+                  return (
+                    <tr key={idx} className="hover:bg-white/[0.03] transition-all group cursor-pointer" onClick={() => handleArticleClick({...row, thumbnail: thumb})}>
+                      <td className="px-10 py-8"><div className="flex items-center gap-5"><span className="text-base font-black text-slate-700 w-8">#{idx + 11}</span><span className="px-3 py-1.5 bg-white/5 rounded-xl text-[10px] font-mono font-bold text-indigo-300 border border-white/5">{row.article_id}</span></div></td>
+                      <td className="px-10 py-8"><div className="flex flex-col"><span className="text-[15px] font-bold text-white truncate max-w-xl group-hover:text-indigo-400 transition-all flex items-center gap-3">{row.Title}<ExternalLink size={14} className="opacity-0 group-hover:opacity-100 transition-opacity text-indigo-500 shrink-0" /></span><div className="flex items-center gap-4 mt-2"><span className="text-[10px] text-indigo-500/80 font-black uppercase tracking-widest">{row.CateName}</span><span className="w-1.5 h-1.5 bg-slate-800 rounded-full"></span><div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black text-white uppercase tracking-widest ${getContentCategory(row).color}`}>{getContentCategory(row).label}</div></div></div></td>
+                      <td className="px-10 py-8 text-sm font-black text-slate-300">{row.PVs.toLocaleString()}</td>
+                      <td className="px-10 py-8 text-sm font-medium text-slate-400">{row.Total_Play.toLocaleString()}</td>
+                      <td className="px-10 py-8 text-sm font-medium text-slate-400"><div className="flex items-center gap-2"><Users size={16} className="text-slate-600" />{row.User.toLocaleString()}</div></td>
+                      <td className="px-10 py-8"><div className="flex items-center gap-4"><span className="text-sm font-black text-emerald-400 w-12">{Math.round(row.Consumption_Rate * 100)}%</span><div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden max-w-[80px]"><div className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500" style={{ width: `${row.Consumption_Rate * 100}%` }}></div></div></div></td>
+                    </tr>
+                  );
+                })}
             </tbody></table></div></div>
           </div>
         </div>
       )}
 
+      {/* Topic Portfolio section remains the same */}
       <div className="mt-32 px-2">
          <div className="flex items-center gap-5 mb-12">
             <h4 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-4">
