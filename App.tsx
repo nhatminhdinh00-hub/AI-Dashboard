@@ -13,9 +13,10 @@ import {
   Grid,
   Play,
   Filter,
-  Calendar
+  Calendar,
+  AlertTriangle
 } from 'lucide-react';
-import { DataRow, DataSummary, AIAnalysisReport } from './types';
+import { DataRow, AIAnalysisReport } from './types';
 import { generateDeepReport, generateImageForTitle } from './services/geminiService';
 import Dashboard from './components/Dashboard';
 import DataTable from './components/DataTable';
@@ -24,6 +25,7 @@ import ArticleTable from './components/ArticleTable';
 import UserNeedAnalysis from './components/UserNeedAnalysis';
 
 const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRAdlxOzoqsYYkxVd27Ba94w2fNe-qtKav3-3uQH1Ll33MS13TI9XGXW_bpPZ5vjrMkZPXkNKqhF8UP/pub?output=tsv";
+const CACHE_KEY = "vne_go_ai_thumbs_v2";
 
 const App: React.FC = () => {
   const [rawData, setRawData] = useState<DataRow[]>([]);
@@ -33,20 +35,31 @@ const App: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Cache for AI Generated Thumbnails to persist across data refreshes
-  const [aiThumbCache, setAiThumbCache] = useState<Record<string, string>>({});
+  const [aiThumbCache, setAiThumbCache] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem(CACHE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
 
-  // Global Filters State
   const [selectedCate, setSelectedCate] = useState<string>('All');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(aiThumbCache));
+    } catch (e) {}
+  }, [aiThumbCache]);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(DATA_URL);
-      if (!res.ok) throw new Error("Kết nối thất bại.");
+      if (!res.ok) throw new Error("Kết nối dữ liệu thất bại.");
       const text = await res.text();
       const lines = text.split('\n').filter(l => l.trim());
       const headers = lines[0].split('\t').map(h => h.trim());
@@ -92,14 +105,14 @@ const App: React.FC = () => {
           UserNeed: getVal(['UserNeed', 'User Need', 'Topic_Level_1']) || 'Chung',
           Content_Angle: getVal(['Content_Angle', 'Angle']) || 'Tiêu chuẩn',
           Public_Time: getVal(['Public Time', 'Public_Time', 'Time', 'Date', 'Ngày xuất bản']) || 'N/A',
-          PVs: getVal(['PageViews', 'PVs', 'Views']) || 0,
-          Total_Play: realPlays,
-          Quality_Play: qualityPlays,
-          User: users,
-          Consumption_Rate: getVal(['Consumption Rate', 'Rate', 'Consumption_Rate']) || (realPlays > 0 ? qualityPlays / realPlays : 0),
-          Play_Per_User: getVal(['Play/User', 'Plays/User']) || (users > 0 ? realPlays / users : 0),
-          Session_Per_User: getVal(['Session/User', 'Sessions/User']) || 0,
-          TimeWatching_Per_User: getVal(['Time watching/User', 'TimeWatching/User', 'Duration']) || 0,
+          PVs: Number(getVal(['PageViews', 'PVs', 'Views'])) || 0,
+          Total_Play: Number(realPlays) || 0,
+          Quality_Play: Number(qualityPlays) || 0,
+          User: Number(users) || 0,
+          Consumption_Rate: Number(getVal(['Consumption Rate', 'Rate', 'Consumption_Rate'])) || (realPlays > 0 ? qualityPlays / realPlays : 0),
+          Play_Per_User: Number(getVal(['Play/User', 'Plays/User'])) || (users > 0 ? realPlays / users : 0),
+          Session_Per_User: Number(getVal(['Session/User', 'Sessions/User'])) || 0,
+          TimeWatching_Per_User: Number(getVal(['Time watching/User', 'TimeWatching/User', 'Duration'])) || 0,
           thumbnail: detectedThumb || getVal(['thumbnail', 'image', 'thumb', 'Avatar', 'Poster']),
         } as DataRow;
       });
@@ -111,32 +124,26 @@ const App: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { 
+    fetchData(); 
+  }, []);
 
-  // Trigger AI Image generation for Top 10 when rawData changes
   useEffect(() => {
     const triggerImageGen = async () => {
-      if (rawData.length === 0) return;
+      const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
+      if (rawData.length === 0 || !apiKey) return;
       
-      // Get Global Top 10 by PVs to generate images
       const top10 = [...rawData].sort((a, b) => b.PVs - a.PVs).slice(0, 10);
-      
       for (const article of top10) {
         const id = String(article.article_id);
-        // Only generate if not in cache
         if (!aiThumbCache[id]) {
           try {
             const generated = await generateImageForTitle(article.Title);
-            if (generated) {
-              setAiThumbCache(prev => ({ ...prev, [id]: generated }));
-            }
-          } catch (err) {
-            console.error(`Failed to generate AI image for ${id}`, err);
-          }
+            if (generated) setAiThumbCache(prev => ({ ...prev, [id]: generated }));
+          } catch (err) {}
         }
       }
     };
-    
     triggerImageGen();
   }, [rawData]);
 
@@ -145,18 +152,16 @@ const App: React.FC = () => {
     return ['All', ...cates];
   }, [rawData]);
 
-  // Enrich rawData with Cached AI Thumbnails
   const enrichedData = useMemo(() => {
     return rawData.map(item => ({
       ...item,
-      aiThumbnail: aiThumbCache[String(item.article_id)] || item.aiThumbnail
+      aiThumbnail: aiThumbCache[String(item.article_id)]
     }));
   }, [rawData, aiThumbCache]);
 
   const filteredData = useMemo(() => {
     return enrichedData.filter(item => {
       const matchCate = selectedCate === 'All' || item.CateName === selectedCate;
-      
       let matchTime = true;
       if (startDate || endDate) {
         const itemDate = new Date(item.Public_Time);
@@ -171,7 +176,6 @@ const App: React.FC = () => {
           matchTime = false; 
         }
       }
-      
       return matchCate && matchTime;
     });
   }, [enrichedData, selectedCate, startDate, endDate]);
@@ -190,6 +194,8 @@ const App: React.FC = () => {
     });
     return { aggregates } as any;
   }, [filteredData]);
+
+  const apiKeyExists = typeof process !== 'undefined' && !!process.env.API_KEY;
 
   if (loading) return (
     <div className="h-screen w-full flex flex-col items-center justify-center bg-[#050505]">
@@ -211,12 +217,7 @@ const App: React.FC = () => {
           <button onClick={() => setActiveTab('table')} className={`p-3 rounded-xl transition-all ${activeTab === 'table' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}>
             <TableIcon size={22} />
           </button>
-          <button className="p-3 text-slate-500 hover:text-white"><Grid size={22} /></button>
         </nav>
-        <div className="mt-auto flex flex-col gap-6">
-          <button className="p-3 text-slate-500 hover:text-white"><Bell size={22} /></button>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border border-white/20"></div>
-        </div>
       </aside>
 
       <main className="flex-1 overflow-y-auto px-10 py-8 relative">
@@ -226,142 +227,92 @@ const App: React.FC = () => {
             <p className="text-slate-500 text-xs font-medium uppercase tracking-widest mt-1">Hệ thống điều hành dữ liệu Orion 2.0</p>
           </div>
           <div className="flex items-center gap-4">
+             {!apiKeyExists && (
+               <div className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-[10px] font-black uppercase tracking-widest">
+                  <AlertTriangle size={14} /> Thiếu API Key
+               </div>
+             )}
              <button onClick={fetchData} className="p-3 rounded-xl bg-white/5 border border-white/5 text-white hover:bg-white/10 transition-all">
                 <RefreshCw size={18} />
              </button>
           </div>
         </header>
 
-        {/* Global Filter Bar */}
         <div className="glass-card mb-10 p-6 rounded-[32px] flex flex-wrap items-center gap-8 border border-white/5">
            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
-                 <Filter size={18} />
-              </div>
+              <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400"><Filter size={18} /></div>
               <div className="flex flex-col">
                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Chuyên mục</label>
-                 <select 
-                   value={selectedCate} 
-                   onChange={(e) => setSelectedCate(e.target.value)}
-                   className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer"
-                 >
-                   {availableCates.map(cate => (
-                     <option key={cate} value={cate} className="bg-[#080808] text-white">
-                       {cate === 'All' ? 'Tất cả chuyên mục' : cate}
-                     </option>
-                   ))}
+                 <select value={selectedCate} onChange={(e) => setSelectedCate(e.target.value)} className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer">
+                   {availableCates.map(cate => <option key={cate} value={cate} className="bg-[#080808] text-white">{cate === 'All' ? 'Tất cả' : cate}</option>)}
                  </select>
               </div>
            </div>
-
-           <div className="h-10 w-px bg-white/5 hidden md:block"></div>
-
            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
-                 <Calendar size={18} />
-              </div>
+              <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400"><Calendar size={18} /></div>
               <div className="flex gap-6">
                  <div className="flex flex-col">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Từ ngày</label>
-                    <input 
-                      type="date" 
-                      value={startDate} 
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer [color-scheme:dark]"
-                    />
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer [color-scheme:dark]" />
                  </div>
                  <div className="flex flex-col">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Đến ngày</label>
-                    <input 
-                      type="date" 
-                      value={endDate} 
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer [color-scheme:dark]"
-                    />
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer [color-scheme:dark]" />
                  </div>
               </div>
            </div>
-
-           {(selectedCate !== 'All' || startDate || endDate) && (
-              <button 
-                onClick={() => { setSelectedCate('All'); setStartDate(''); setEndDate(''); }}
-                className="ml-auto text-[10px] font-black text-rose-400 uppercase tracking-widest hover:text-rose-300"
-              >
-                Xoá bộ lọc
-              </button>
-           )}
         </div>
 
         {activeTab === 'overview' ? (
           <div className="space-y-12 pb-12">
-            
             <Dashboard data={filteredData} />
-
             <div className="grid grid-cols-12 gap-6">
               <div className="col-span-12 lg:col-span-5 glass-card p-8 rounded-[32px] flex flex-col justify-between">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h3 className="text-slate-400 text-sm font-semibold">Tổng Lượt xem (PVs)</h3>
-                    <p className="text-4xl font-extrabold text-white mt-2 leading-none">
-                      {Math.round(dataSummary?.aggregates.PVs.sum || 0).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full text-[11px] font-bold">TRỰC TIẾP</div>
+                <div>
+                  <h3 className="text-slate-400 text-sm font-semibold">Tổng Lượt xem (PVs)</h3>
+                  <p className="text-4xl font-extrabold text-white mt-2 leading-none">{Math.round(dataSummary?.aggregates.PVs.sum || 0).toLocaleString()}</p>
                 </div>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="bg-white/5 rounded-2xl p-6 border border-white/5 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Tổng Lượt Play</p>
-                      <p className="text-2xl font-black text-white mt-1">{Math.round(dataSummary?.aggregates.Total_Play.sum || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                      <Play size={24} fill="currentColor" />
-                    </div>
+                <div className="bg-white/5 rounded-2xl p-6 border border-white/5 flex items-center justify-between mt-6">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Tổng Lượt Play</p>
+                    <p className="text-2xl font-black text-white mt-1">{Math.round(dataSummary?.aggregates.Total_Play.sum || 0).toLocaleString()}</p>
                   </div>
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400"><Play size={24} fill="currentColor" /></div>
                 </div>
               </div>
-
               <div className="col-span-12 lg:col-span-7 grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                  { label: 'Tỉ lệ Consumption', val: `${((dataSummary?.aggregates.Consumption_Rate.avg || 0) * 100).toFixed(1)}%`, icon: Zap },
-                  { label: 'Lượt Play/User', val: (dataSummary?.aggregates.Play_Per_User.avg || 0).toFixed(2), icon: Users },
-                  { label: 'Time/User (Phút)', val: (dataSummary?.aggregates.TimeWatching_Per_User.avg || 0).toFixed(1), icon: TrendingUp }
+                  { label: 'Consumption', val: `${((dataSummary?.aggregates.Consumption_Rate.avg || 0) * 100).toFixed(1)}%`, icon: Zap },
+                  { label: 'Play/User', val: (dataSummary?.aggregates.Play_Per_User.avg || 0).toFixed(2), icon: Users },
+                  { label: 'Time/User', val: (dataSummary?.aggregates.TimeWatching_Per_User.avg || 0).toFixed(1), icon: TrendingUp }
                 ].map((item, idx) => (
-                  <div key={idx} className="glass-card p-8 rounded-[32px] flex flex-col justify-between border-t-2 border-t-indigo-500/10">
-                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white mb-6">
-                      <item.icon size={20} />
-                    </div>
-                    <div>
-                      <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{item.label}</p>
-                      <h4 className="text-2xl font-bold text-white mt-2">{item.val}</h4>
-                    </div>
+                  <div key={idx} className="glass-card p-8 rounded-[32px] flex flex-col justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white mb-6"><item.icon size={20} /></div>
+                    <div><p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{item.label}</p><h4 className="text-2xl font-bold text-white mt-2">{item.val}</h4></div>
                   </div>
                 ))}
               </div>
             </div>
-            
             <ArticleTable data={filteredData} />
-
             <div className="flex justify-center mt-12">
                <button 
                 onClick={async () => {
                   if (!dataSummary) return;
                   setIsAnalyzing(true);
-                  const res = await generateDeepReport(dataSummary as any, filteredData);
-                  setReport(res);
+                  try {
+                    const res = await generateDeepReport(dataSummary as any, filteredData);
+                    setReport(res);
+                  } catch (e) {}
                   setIsAnalyzing(false);
                 }}
-                className="group relative px-10 py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[24px] font-bold tracking-widest uppercase text-xs transition-all shadow-2xl shadow-indigo-600/40"
+                disabled={!apiKeyExists}
+                className={`px-10 py-5 rounded-[24px] font-bold tracking-widest uppercase text-xs transition-all flex items-center gap-3 ${apiKeyExists ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-2xl' : 'bg-white/5 text-slate-500 cursor-not-allowed'}`}
               >
-                <div className="flex items-center gap-3">
-                  {isAnalyzing ? <RefreshCw className="animate-spin" size={16} /> : <Zap size={16} fill="currentColor" />}
-                  <span>{isAnalyzing ? 'Đang phân tích dữ liệu...' : 'Tạo Báo cáo Chiến lược AI'}</span>
-                </div>
+                {isAnalyzing ? <RefreshCw className="animate-spin" size={16} /> : <Zap size={16} fill="currentColor" />}
+                <span>{isAnalyzing ? 'Đang phân tích...' : 'Tạo Báo cáo AI'}</span>
                </button>
             </div>
-
             {report && <InsightPanel report={report} loading={isAnalyzing} />}
-
             <UserNeedAnalysis data={filteredData} />
           </div>
         ) : (
