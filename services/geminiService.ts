@@ -2,9 +2,20 @@
 import { GoogleGenAI } from "@google/genai";
 import { DataSummary, AIAnalysisReport, ArticleDetailInsight, DataRow } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Khởi tạo AI instance một cách an toàn
+const getAiInstance = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    console.warn("API_KEY is missing. AI features will not work.");
+    return null;
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 export const generateDeepReport = async (summary: DataSummary, articles: any[]): Promise<AIAnalysisReport> => {
+  const ai = getAiInstance();
+  if (!ai) throw new Error("AI Service not initialized. Check API_KEY.");
+
   const sampleData = articles.slice(0, 60).map(a => ({
     id: String(a.article_id),
     title: a.Title,
@@ -59,6 +70,14 @@ export const generateDeepReport = async (summary: DataSummary, articles: any[]):
 };
 
 export const generateArticleInsight = async (article: DataRow): Promise<ArticleDetailInsight> => {
+  const ai = getAiInstance();
+  if (!ai) return {
+    performanceScore: "Cần API Key",
+    audiencePersona: "Vui lòng cấu hình API Key",
+    growthOpportunity: "Kiểm tra Environment Variables trên Vercel",
+    strategicTakeaway: "API Key bị thiếu"
+  };
+
   const prompt = `
     Analyze this specific article performance:
     Title: ${article.Title}
@@ -97,6 +116,9 @@ export const generateArticleInsight = async (article: DataRow): Promise<ArticleD
 };
 
 export const generateImageForTitle = async (title: string): Promise<string | null> => {
+  const ai = getAiInstance();
+  if (!ai) return null;
+
   const prompt = `Create a professional, high-end, cinematic media thumbnail for a video titled: "${title}". 
   The style should be modern digital art, sleek, dark background, premium lighting, no text in the image. 
   Netflix series style photography.`;
