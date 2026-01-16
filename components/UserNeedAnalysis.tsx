@@ -195,7 +195,7 @@ const UserNeedAnalysis: React.FC<UserNeedAnalysisProps> = ({ data }) => {
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full flex items-center justify-center border border-dashed border-white/5 rounded-3xl">
-                   <p className="text-xs font-black uppercase text-slate-600">Dữ liệu quy mô bài viết không đủ để phân tích chỉ số RI/DI (>5%)</p>
+                   <p className="text-xs font-black uppercase text-slate-600">Dữ liệu quy mô bài viết không đủ để phân tích chỉ số RI/DI (&gt;5%)</p>
                 </div>
               )}
             </div>
