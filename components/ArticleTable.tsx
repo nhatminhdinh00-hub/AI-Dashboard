@@ -44,18 +44,18 @@ interface ArticleTableProps {
   data: DataRow[];
 }
 
-// Deterministic placeholder library
+// Danh sách 10 ảnh Unsplash chất lượng cao, xác thực và ổn định nhất cho Top 10 Trending
 const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1518186239717-2e9b69d7744a?q=80&w=1974&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1504868584819-f8eec04216ef?q=80&w=2070&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2015&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1551288049-bbda3865c19c?q=80&w=2070&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1454165833767-027eeed15c3e?q=80&w=2070&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?q=80&w=2006&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=1974&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1531297484001-80022131f5a1?q=80&w=2020&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1504270997636-07ddfbd48945?q=80&w=2071&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
+  "https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=800&auto=format&fit=crop", // 1. News room
+  "https://images.unsplash.com/photo-1551288049-bbda3865c19c?q=80&w=800&auto=format&fit=crop", // 2. Financial charts
+  "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=800&auto=format&fit=crop", // 3. Tech/Digital
+  "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=800&auto=format&fit=crop", // 4. Business strategy
+  "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=800&auto=format&fit=crop", // 5. Media studio
+  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop", // 6. Global network
+  "https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=800&auto=format&fit=crop", // 7. Modern office
+  "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800&auto=format&fit=crop", // 8. Cyber security/Tech
+  "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=800&auto=format&fit=crop", // 9. Success focus
+  "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop"  // 10. Abstract high-tech
 ];
 
 const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
@@ -122,20 +122,14 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
     return filtered;
   }, [data, search, sortField, sortDir]);
 
-  // Specific requirement: replace thumb for position #3 (index 2)
+  // Gán ảnh cho Top 10, đảm bảo mỗi vị trí có 1 ảnh duy nhất và đa dạng
   const topTen = useMemo(() => {
     return allProcessed.slice(0, 10).map((item, idx) => {
       let thumb = item.thumbnail;
       
-      // Use deterministic fallback from library if no thumb is present
-      if (!thumb) {
-        const idStr = String(item.article_id);
-        const hash = idStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        thumb = FALLBACK_IMAGES[hash % FALLBACK_IMAGES.length];
-      }
-
-      if (idx === 2) {
-        thumb = "https://lh3.googleusercontent.com/gg-dl/ABS2GSmCmrmnP8FGMctIIMZQ60A58YGHPgMXkCtmECbBrJ_oP8raaqysuSBpr64LrjjNoMvEOWJYlqizVMQw2pRrCR_YcBdksH5L_kuPVnLRPky-MEyokg6fT6cbmoFmF6dbdn_1eR0_mxQdvTU53QEUfRrdr_KgEhu7MajHM5q_3zOqzuY8aA=s1024-rj";
+      // Nếu không có ảnh hoặc ảnh là logo mặc định, gán ảnh Unsplash xác thực theo vị trí (0-9)
+      if (!thumb || thumb === 'N/A' || thumb.includes('logo-vne')) {
+        thumb = FALLBACK_IMAGES[idx];
       }
       
       return { ...item, thumbnail: thumb };
@@ -257,7 +251,15 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
               <div className="ml-14 relative z-10 h-full flex flex-col">
                 <div className={`relative aspect-[3/4.5] rounded-[32px] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.6)] transition-all duration-700 group-hover:scale-105 group-hover:-translate-y-6 border bg-[#0c0c0c] ${isTopThree ? 'border-indigo-500/30' : 'border-white/10'}`}>
                   {currentThumb ? (
-                    <img src={currentThumb} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="" />
+                    <img 
+                      src={currentThumb} 
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
+                      alt="" 
+                      onError={(e) => {
+                        // Dự phòng cuối cùng nếu link bị chết đột ngột
+                        (e.target as HTMLImageElement).src = FALLBACK_IMAGES[idx % FALLBACK_IMAGES.length];
+                      }}
+                    />
                   ) : (
                     <div className={`w-full h-full bg-gradient-to-br ${getPlaceholderStyle(row.article_id)} flex flex-col items-center justify-center p-8 text-center relative overflow-hidden`}>
                       <div className="absolute inset-0 bg-white/[0.02]"></div>
@@ -405,7 +407,7 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
             <div className="glass-card rounded-[48px] overflow-hidden border border-white/5 bg-[#080808]/80 backdrop-blur-3xl"><div className="overflow-x-auto"><table className="w-full text-left border-collapse"><thead><tr className="bg-white/[0.04]"><th className="px-10 py-8 text-[11px] font-black text-slate-500 uppercase tracking-widest w-[160px]">Thứ tự</th><th className="px-10 py-8 text-[11px] font-black text-slate-500 uppercase tracking-widest w-[40%]">Nội dung Phân tích</th>{[{ label: 'Lượt xem', key: 'PVs' }, { label: 'Plays', key: 'Total_Play' }, { label: 'Users', key: 'User' }, { label: 'Consumption', key: 'Consumption_Rate' }].map(col => (<th key={col.key} className="px-10 py-8 text-[11px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-indigo-400 transition-colors" onClick={() => toggleSort(col.key as keyof DataRow)}><div className="flex items-center gap-2">{col.label}{sortField === col.key && (<span className="text-indigo-500">{sortDir === 'desc' ? '↓' : '↑'}</span>)}</div></th>))}</tr></thead><tbody className="divide-y divide-white/5">
                 {theRest.map((row, idx) => {
                   let thumb = row.thumbnail;
-                  if (!thumb) {
+                  if (!thumb || thumb === 'N/A' || thumb.includes('logo-vne')) {
                     const idStr = String(row.article_id);
                     const hash = idStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
                     thumb = FALLBACK_IMAGES[hash % FALLBACK_IMAGES.length];
@@ -426,7 +428,7 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
         </div>
       )}
 
-      {/* Topic Portfolio section remains the same */}
+      {/* Topic Portfolio section */}
       <div className="mt-32 px-2">
          <div className="flex items-center gap-5 mb-12">
             <h4 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-4">
