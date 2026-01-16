@@ -13,6 +13,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const [interval, setInterval] = useState<'Daily' | 'Weekly' | 'Monthly'>('Daily');
   const [viewMode, setViewMode] = useState<'Total' | 'Topics'>('Total');
+  const isLight = document.body.classList.contains('light');
   
   const allTopics = useMemo(() => {
     return Array.from(new Set(data.map(d => d.Topic_Level_1))).filter(Boolean);
@@ -127,17 +128,17 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
           <div className="flex items-center gap-4">
              <div className="w-2 h-8 bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-             <h2 className="text-3xl font-extrabold text-white tracking-tighter uppercase italic">Phân tích Timeline</h2>
+             <h2 className="text-3xl font-extrabold text-[var(--text-main)] tracking-tighter uppercase">Phân tích Timeline</h2>
           </div>
           
           <div className="flex flex-wrap gap-4">
-            <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
+            <div className="flex bg-[var(--border-color)] p-1 rounded-xl border border-[var(--border-color)]">
               {['Daily', 'Weekly', 'Monthly'].map((t) => (
                 <button
                   key={t}
                   onClick={() => setInterval(t as any)}
                   className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
-                    interval === t ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'
+                    interval === t ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-400'
                   }`}
                 >
                   {t}
@@ -145,11 +146,11 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
               ))}
             </div>
 
-            <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
+            <div className="flex bg-[var(--border-color)] p-1 rounded-xl border border-[var(--border-color)]">
               <button
                 onClick={() => setViewMode('Total')}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
-                  viewMode === 'Total' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'
+                  viewMode === 'Total' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-400'
                 }`}
               >
                 <Activity size={12} />
@@ -158,7 +159,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
               <button
                 onClick={() => setViewMode('Topics')}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
-                  viewMode === 'Topics' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'
+                  viewMode === 'Topics' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-indigo-400'
                 }`}
               >
                 <Layers size={12} />
@@ -176,8 +177,8 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                 onClick={() => toggleTopic(topic)}
                 className={`px-3 py-1.5 rounded-full border transition-all text-[9px] font-bold uppercase tracking-wider ${
                   activeTopics.includes(topic)
-                    ? 'bg-white/10 border-white/20 text-white'
-                    : 'bg-transparent border-white/5 text-slate-600'
+                    ? 'bg-indigo-500 border-indigo-500/20 text-white'
+                    : 'bg-transparent border-[var(--border-color)] text-slate-500'
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full mr-2 inline-block" style={{ backgroundColor: COLORS[i % COLORS.length] }}></span>
@@ -188,7 +189,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         )}
       </div>
 
-      <div className="glass-card p-10 rounded-[48px] border border-white/5 relative overflow-hidden bg-[#080808]/80 backdrop-blur-3xl">
+      <div className="glass-card p-6 md:p-10 rounded-[48px] border border-[var(--border-color)] relative overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 relative z-10">
           <div className="lg:col-span-8 h-[500px]">
             {chartData.length > 0 ? (
@@ -210,7 +211,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                       </linearGradient>
                     ))}
                   </defs>
-                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.02)" />
+                  <CartesianGrid vertical={false} stroke={isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.02)"} />
                   <XAxis 
                     dataKey="name" 
                     axisLine={false} 
@@ -237,9 +238,9 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                     label={{ value: 'SỐ BÀI VIẾT', angle: 90, position: 'insideRight', fill: '#94a3b8', fontSize: 9, fontWeight: 900 }}
                   />
                   <Tooltip 
-                    cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                    contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '12px' }}
-                    itemStyle={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', padding: '2px 0' }}
+                    cursor={{ fill: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)' }}
+                    contentStyle={{ backgroundColor: isLight ? '#fff' : '#0a0a0a', border: `1px solid ${isLight ? '#eee' : 'rgba(255,255,255,0.1)'}`, borderRadius: '16px', padding: '12px' }}
+                    itemStyle={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', padding: '2px 0', color: isLight ? '#0F172A' : '#fff' }}
                     formatter={(val: any, name: string) => {
                       if (name === 'totalPvs') return [Math.round(val * 1000).toLocaleString() + ' PVs', 'Tổng Lượt xem'];
                       if (name === 'articleCount') return [val + ' bài', 'Sản lượng bài'];
@@ -320,48 +321,48 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                 </ComposedChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-600">
+              <div className="flex flex-col items-center justify-center h-full text-slate-400">
                 <p className="text-sm font-bold tracking-widest uppercase">Không có dữ liệu trong khoảng thời gian này</p>
               </div>
             )}
           </div>
 
-          <div className="lg:col-span-4 flex flex-col justify-center space-y-6 lg:border-l lg:border-white/5 lg:pl-12">
-             <div className="flex items-center gap-3 text-indigo-400 mb-2">
+          <div className="lg:col-span-4 flex flex-col justify-center space-y-6 lg:border-l lg:border-[var(--border-color)] lg:pl-12">
+             <div className="flex items-center gap-3 text-indigo-500 mb-2">
                 <BarChart size={20} />
                 <h5 className="text-[11px] font-black uppercase tracking-[0.3em]">Hiệu suất Khoảng thời gian</h5>
              </div>
 
              <div className="space-y-6">
-                <div className="bg-white/5 p-6 rounded-[28px] border border-white/5">
+                <div className="bg-indigo-500/5 p-6 rounded-[28px] border border-indigo-500/10">
                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Hiệu suất Sản xuất</p>
                    <div className="flex items-baseline gap-3">
-                      <h4 className="text-2xl font-black text-indigo-400">
+                      <h4 className="text-2xl font-black text-indigo-500">
                          {stats.totalArticles}
                       </h4>
                       <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Tổng bài viết</span>
                    </div>
-                   <p className="text-slate-400 text-[11px] mt-3 leading-relaxed">
-                      Trung bình mỗi bài viết tạo ra <span className="text-white font-bold">{Math.round(stats.avgPvsPerArticle).toLocaleString()} PVs</span>. 
+                   <p className="text-[var(--text-muted)] text-[11px] mt-3 leading-relaxed">
+                      Trung bình mỗi bài viết tạo ra <span className="text-[var(--text-main)] font-bold">{Math.round(stats.avgPvsPerArticle).toLocaleString()} PVs</span>. 
                    </p>
                 </div>
 
-                <div className="bg-white/5 p-6 rounded-[28px] border border-white/5">
+                <div className="bg-emerald-500/5 p-6 rounded-[28px] border border-emerald-500/10">
                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Biến động Tăng trưởng</p>
                    <div className="flex items-baseline gap-3">
-                      <h4 className={`text-2xl font-black ${stats.trend >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      <h4 className={`text-2xl font-black ${stats.trend >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                          {stats.trend >= 0 ? '+' : ''}{stats.trend.toFixed(1)}%
                       </h4>
                       <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">PVs vs Khởi đầu</span>
                    </div>
-                   <p className="text-slate-400 text-[11px] mt-3 leading-relaxed italic">
-                      Lưu lượng truy cập đang {stats.trend >= 0 ? 'tăng trưởng' : 'sụt giảm'} so với điểm khởi đầu của khoảng thời gian này.
+                   <p className="text-[var(--text-muted)] text-[11px] mt-3 leading-relaxed">
+                      Lưu lượng truy cập đang {stats.trend >= 0 ? 'tăng trưởng' : 'sụt giảm'} so với điểm khởi đầu.
                    </p>
                 </div>
 
-                <div className="flex items-start gap-4 p-4 bg-white/[0.02] rounded-2xl border border-white/5">
-                   <div className="mt-1"><Info size={16} className="text-slate-600" /></div>
-                   <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
+                <div className="flex items-start gap-4 p-4 bg-[var(--border-color)] rounded-2xl border border-[var(--border-color)]">
+                   <div className="mt-1"><Info size={16} className="text-slate-400" /></div>
+                   <p className="text-[10px] text-slate-400 font-bold leading-relaxed uppercase">
                       Dữ liệu phản hồi theo bộ lọc toàn cục: Chuyên mục và Thời gian.
                    </p>
                 </div>

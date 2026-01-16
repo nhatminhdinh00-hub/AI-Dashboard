@@ -44,7 +44,6 @@ interface ArticleTableProps {
   data: DataRow[];
 }
 
-// Danh sách 10 ảnh Unsplash chất lượng cao, xác thực và ổn định nhất cho Top 10 Trending
 const FALLBACK_IMAGES = [
   "https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=800&auto=format&fit=crop", // 1. News room
   "https://images.unsplash.com/photo-1551288049-bbda3865c19c?q=80&w=800&auto=format&fit=crop", // 2. Financial charts
@@ -66,6 +65,7 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
   const [selectedArticle, setSelectedArticle] = useState<DataRow | null>(null);
   const [articleInsight, setArticleInsight] = useState<ArticleDetailInsight | null>(null);
   const [isInsightLoading, setIsInsightLoading] = useState(false);
+  const isLight = document.body.classList.contains('light');
 
   const formatTime = (totalSeconds: number) => {
     if (!totalSeconds || isNaN(totalSeconds)) return '0s';
@@ -122,16 +122,12 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
     return filtered;
   }, [data, search, sortField, sortDir]);
 
-  // Gán ảnh cho Top 10, đảm bảo mỗi vị trí có 1 ảnh duy nhất và đa dạng
   const topTen = useMemo(() => {
     return allProcessed.slice(0, 10).map((item, idx) => {
       let thumb = item.thumbnail;
-      
-      // Nếu không có ảnh hoặc ảnh là logo mặc định, gán ảnh Unsplash xác thực theo vị trí (0-9)
       if (!thumb || thumb === 'N/A' || thumb.includes('logo-vne')) {
         thumb = FALLBACK_IMAGES[idx];
       }
-      
       return { ...item, thumbnail: thumb };
     });
   }, [allProcessed]);
@@ -183,52 +179,52 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
     <div className="space-y-16">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 px-2">
         <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-indigo-500/10 rounded-[24px] flex items-center justify-center text-indigo-400 border border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
+          <div className="w-16 h-16 bg-indigo-500/10 rounded-[24px] flex items-center justify-center text-indigo-500 border border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
             <TrendingUp size={32} />
           </div>
           <div>
-            <h3 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Top Trending</h3>
-            <p className="text-[11px] text-slate-500 uppercase tracking-[0.4em] font-bold mt-2">Kiểm định Nội dung Chiến lược</p>
+            <h3 className="text-4xl font-black text-[var(--text-main)] tracking-tighter uppercase leading-none">Top Trending</h3>
+            <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-[0.4em] font-bold mt-2">Kiểm định Nội dung Chiến lược</p>
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
-           <div className="glass-card p-6 rounded-[28px] border border-white/5 flex items-center gap-6 bg-gradient-to-r from-white/[0.03] to-transparent">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+           <div className="glass-card p-6 rounded-[28px] flex items-center gap-6">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
                 <BarChart size={24} />
               </div>
               <div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Trung bình Top 10 PVs</p>
+                <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Trung bình Top 10 PVs</p>
                 <div className="flex items-baseline gap-2">
-                   <h4 className="text-xl font-black text-white">{Math.round(topTenMetrics.pvs).toLocaleString()}</h4>
-                   <span className="text-[10px] font-black text-emerald-400">+{Math.round((topTenMetrics.pvs / averages.pvs - 1) * 100)}%</span>
+                   <h4 className="text-xl font-black text-[var(--text-main)]">{Math.round(topTenMetrics.pvs).toLocaleString()}</h4>
+                   <span className="text-[10px] font-black text-emerald-500">+{Math.round((topTenMetrics.pvs / averages.pvs - 1) * 100)}%</span>
                 </div>
               </div>
            </div>
 
-           <div className="glass-card p-6 rounded-[28px] border border-white/5 flex items-center gap-6 bg-gradient-to-r from-white/[0.03] to-transparent">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+           <div className="glass-card p-6 rounded-[28px] flex items-center gap-6">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                 <ShieldCheck size={24} />
               </div>
               <div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Consumption Top 10</p>
+                <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Consumption Top 10</p>
                 <div className="flex items-baseline gap-2">
-                   <h4 className="text-xl font-black text-white">{Math.round(topTenMetrics.consumption * 100)}%</h4>
-                   <span className={`text-[10px] font-black ${topTenMetrics.consumption >= averages.consumption ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {topTenMetrics.consumption >= averages.consumption ? '+' : ''}{Math.round((topTenMetrics.consumption / averages.consumption - 1) * 100)}% so với Toàn bộ
+                   <h4 className="text-xl font-black text-[var(--text-main)]">{Math.round(topTenMetrics.consumption * 100)}%</h4>
+                   <span className={`text-[10px] font-black ${topTenMetrics.consumption >= averages.consumption ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      {topTenMetrics.consumption >= averages.consumption ? '+' : ''}{Math.round((topTenMetrics.consumption / averages.consumption - 1) * 100)}%
                    </span>
                 </div>
               </div>
            </div>
 
            <div className="relative group self-center lg:self-auto">
-             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
              <input 
                type="text" 
                placeholder="Lọc danh mục trending..."
                value={search}
                onChange={(e) => setSearch(e.target.value)}
-               className="bg-white/5 border border-white/10 rounded-[22px] pl-14 pr-8 py-5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 w-full md:w-80 transition-all placeholder:text-slate-600"
+               className="bg-[var(--sidebar-bg)] border border-[var(--border-color)] rounded-[22px] pl-14 pr-8 py-5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 w-full md:w-80 transition-all placeholder:text-slate-400"
              />
            </div>
         </div>
@@ -244,19 +240,18 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
           return (
             <div key={idx} className="relative group cursor-pointer h-full" onClick={() => handleArticleClick(row)}>
               <div className={`absolute ${isTwoDigits ? '-left-24' : '-left-14'} -bottom-6 select-none pointer-events-none z-0`}>
-                 <span className={`${isTwoDigits ? 'text-[200px]' : 'text-[240px]'} font-black leading-none transition-all duration-700 ${isTopThree ? 'text-transparent bg-clip-text bg-gradient-to-t from-indigo-500/40 via-indigo-500/10 to-transparent' : 'text-transparent stroke-white/5'}`} style={{ WebkitTextStroke: isTopThree ? '2px rgba(99,102,241,0.3)' : '4px rgba(255,255,255,0.08)', filter: isTopThree ? 'drop-shadow(0 0 20px rgba(99,102,241,0.2))' : 'none' }}>
+                 <span className={`${isTwoDigits ? 'text-[200px]' : 'text-[240px]'} font-black leading-none transition-all duration-700 ${isTopThree ? 'text-transparent bg-clip-text bg-gradient-to-t from-indigo-500/40 via-indigo-500/10 to-transparent' : 'text-transparent stroke-white/5'}`} style={{ WebkitTextStroke: isTopThree ? '2px rgba(99,102,241,0.3)' : (isLight ? '4px rgba(0,0,0,0.03)' : '4px rgba(255,255,255,0.08)'), filter: isTopThree ? 'drop-shadow(0 0 20px rgba(99,102,241,0.2))' : 'none' }}>
                   {displayNum}
                  </span>
               </div>
               <div className="ml-14 relative z-10 h-full flex flex-col">
-                <div className={`relative aspect-[3/4.5] rounded-[32px] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.6)] transition-all duration-700 group-hover:scale-105 group-hover:-translate-y-6 border bg-[#0c0c0c] ${isTopThree ? 'border-indigo-500/30' : 'border-white/10'}`}>
+                <div className={`relative aspect-[3/4.5] rounded-[32px] overflow-hidden shadow-2xl transition-all duration-700 group-hover:scale-105 group-hover:-translate-y-6 border bg-[#0c0c0c] ${isTopThree ? 'border-indigo-500/30' : 'border-[var(--border-color)]'}`}>
                   {currentThumb ? (
                     <img 
                       src={currentThumb} 
                       className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
                       alt="" 
                       onError={(e) => {
-                        // Dự phòng cuối cùng nếu link bị chết đột ngột
                         (e.target as HTMLImageElement).src = FALLBACK_IMAGES[idx % FALLBACK_IMAGES.length];
                       }}
                     />
@@ -274,17 +269,17 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
                         <category.icon size={12} /> {category.label}
                      </div>
                   </div>
-                  <div className="absolute bottom-0 p-8 w-full">
-                    <div className="flex items-center gap-3 mb-4"><span className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.2em] italic">{row.CateName}</span></div>
+                  <div className="absolute bottom-0 p-8 w-full text-white">
+                    <div className="flex items-center gap-3 mb-4"><span className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.2em]">{row.CateName}</span></div>
                     <h4 className="text-xl lg:text-2xl font-black text-white line-clamp-4 leading-tight group-hover:text-indigo-300 transition-colors mb-8 tracking-tighter">{row.Title}</h4>
                     <div className="grid grid-cols-2 gap-y-6 gap-x-6 border-t border-white/10 pt-8 mb-8">
-                      <div className="flex flex-col"><span className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">Lượt xem</span><div className="flex items-center gap-2 text-white mt-1.5"><Eye size={18} className="text-indigo-400" /><span className="text-sm font-black">{(row.PVs / 1000).toFixed(1)}K</span></div></div>
-                      <div className="flex flex-col"><span className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">T.Gian TB</span><div className="flex items-center gap-2 text-white mt-1.5"><Clock size={18} className="text-emerald-400" /><span className="text-sm font-black">{formatTime(row.TimeWatching_Per_User)}</span></div></div>
-                      <div className="flex flex-col"><span className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">Lượt Play</span><div className="flex items-center gap-2 text-white mt-1.5"><Activity size={18} className="text-amber-400" /><span className="text-sm font-black">{row.Total_Play.toLocaleString()}</span></div></div>
-                      <div className="flex flex-col"><span className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">Consumption</span><div className="flex items-center gap-2 text-emerald-400 mt-1.5"><ShieldCheck size={18} /><span className="text-sm font-black">{Math.round(row.Consumption_Rate * 100)}%</span></div></div>
+                      <div className="flex flex-col"><span className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Lượt xem</span><div className="flex items-center gap-2 text-white mt-1.5"><Eye size={18} className="text-indigo-400" /><span className="text-sm font-black">{(row.PVs / 1000).toFixed(1)}K</span></div></div>
+                      <div className="flex flex-col"><span className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">T.Gian TB</span><div className="flex items-center gap-2 text-white mt-1.5"><Clock size={18} className="text-emerald-400" /><span className="text-sm font-black">{formatTime(row.TimeWatching_Per_User)}</span></div></div>
+                      <div className="flex flex-col"><span className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Lượt Play</span><div className="flex items-center gap-2 text-white mt-1.5"><Activity size={18} className="text-amber-400" /><span className="text-sm font-black">{row.Total_Play.toLocaleString()}</span></div></div>
+                      <div className="flex flex-col"><span className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Consumption</span><div className="flex items-center gap-2 text-emerald-400 mt-1.5"><ShieldCheck size={18} /><span className="text-sm font-black">{Math.round(row.Consumption_Rate * 100)}%</span></div></div>
                     </div>
-                    <div className="flex items-center justify-between mt-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                       <div className="flex items-center gap-2"><CalendarDays size={14} className="text-slate-700" /> {String(row.Public_Time).split(' ')[0]}</div>
+                    <div className="flex items-center justify-between mt-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                       <div className="flex items-center gap-2"><CalendarDays size={14} className="text-slate-500" /> {String(row.Public_Time).split(' ')[0]}</div>
                     </div>
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 bg-black/60 backdrop-blur-md">
@@ -303,7 +298,7 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
       {selectedArticle && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 md:p-12">
           <div className="absolute inset-0 bg-black/90 backdrop-blur-3xl" onClick={() => setSelectedArticle(null)}></div>
-          <div className="glass-card relative z-10 w-full max-w-7xl h-full max-h-[95vh] rounded-[48px] overflow-hidden flex flex-col md:flex-row shadow-[0_0_100px_rgba(99,102,241,0.2)] animate-in zoom-in-95 duration-300">
+          <div className="glass-card relative z-10 w-full max-w-7xl h-full max-h-[95vh] rounded-[48px] overflow-hidden flex flex-col md:flex-row shadow-2xl animate-in zoom-in-95 duration-300">
              <div className="w-full md:w-[35%] h-[300px] md:h-full relative shrink-0">
                 {selectedArticle.thumbnail ? (
                   <img src={selectedArticle.thumbnail} className="w-full h-full object-cover" alt="" />
@@ -317,73 +312,73 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
                       <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black text-white uppercase tracking-widest ${getContentCategory(selectedArticle).color}`}>{getContentCategory(selectedArticle).label}</div>
                    </div>
                    <h2 className="text-2xl md:text-4xl font-black text-white leading-tight tracking-tighter">{selectedArticle.Title}</h2>
-                   <div className="flex items-center gap-6 mt-8 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                   <div className="flex items-center gap-6 mt-8 text-[11px] font-bold text-slate-300 uppercase tracking-widest">
                       <span className="flex items-center gap-2"><Users size={14} /> Tiếp cận: {selectedArticle.User.toLocaleString()}</span>
                       <span className="flex items-center gap-2"><Globe size={14} /> {selectedArticle.Topic_Level_1}</span>
                    </div>
                 </div>
                 <button onClick={() => setSelectedArticle(null)} className="absolute top-8 left-8 p-3 rounded-full bg-black/40 text-white hover:bg-white hover:text-black transition-all"><X size={24} /></button>
              </div>
-             <div className="flex-1 overflow-y-auto p-12 custom-scrollbar bg-[#050505]">
+             <div className="flex-1 overflow-y-auto p-12 custom-scrollbar bg-[var(--sidebar-bg)]">
                 <div className="flex items-center justify-between mb-12">
                    <div>
-                      <h4 className="text-slate-500 font-black text-[10px] uppercase tracking-[0.3em]">Phân tích Hiệu suất</h4>
-                      <p className="text-white text-xl font-bold mt-1 uppercase italic">Kiểm định Dữ liệu Điều hành</p>
+                      <h4 className="text-[var(--text-muted)] font-black text-[10px] uppercase tracking-[0.3em]">Phân tích Hiệu suất</h4>
+                      <p className="text-[var(--text-main)] text-xl font-bold mt-1 uppercase">Kiểm định Dữ liệu Điều hành</p>
                    </div>
-                   <a href={getVnExpressUrl(selectedArticle.article_id)} target="_blank" className="flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black text-white hover:bg-white/10 transition-all uppercase tracking-widest">Xem Bản gốc <ExternalLink size={14} /></a>
+                   <a href={getVnExpressUrl(selectedArticle.article_id)} target="_blank" className="flex items-center gap-3 px-6 py-3 bg-[var(--border-color)] border border-[var(--border-color)] rounded-2xl text-[11px] font-black text-[var(--text-main)] hover:bg-indigo-500/10 transition-all uppercase tracking-widest">Xem Bản gốc <ExternalLink size={14} /></a>
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                    {[
-                     { label: 'Lượt xem', val: selectedArticle.PVs.toLocaleString(), icon: Eye, color: 'text-indigo-400', delta: ((selectedArticle.PVs / averages.pvs - 1) * 100).toFixed(0) },
-                     { label: 'Consumption', val: `${Math.round(selectedArticle.Consumption_Rate * 100)}%`, icon: ShieldCheck, color: 'text-emerald-400', delta: ((selectedArticle.Consumption_Rate / averages.consumption - 1) * 100).toFixed(0) },
-                     { label: 'Lượt Play', val: selectedArticle.Total_Play.toLocaleString(), icon: Play, color: 'text-rose-400', delta: null },
-                     { label: 'Thời gian xem', val: formatTime(selectedArticle.TimeWatching_Per_User), icon: Clock, color: 'text-amber-400', delta: null }
+                     { label: 'Lượt xem', val: selectedArticle.PVs.toLocaleString(), icon: Eye, color: 'text-indigo-500', delta: ((selectedArticle.PVs / averages.pvs - 1) * 100).toFixed(0) },
+                     { label: 'Consumption', val: `${Math.round(selectedArticle.Consumption_Rate * 100)}%`, icon: ShieldCheck, color: 'text-emerald-500', delta: ((selectedArticle.Consumption_Rate / averages.consumption - 1) * 100).toFixed(0) },
+                     { label: 'Lượt Play', val: selectedArticle.Total_Play.toLocaleString(), icon: Play, color: 'text-rose-500', delta: null },
+                     { label: 'Thời gian xem', val: formatTime(selectedArticle.TimeWatching_Per_User), icon: Clock, color: 'text-amber-500', delta: null }
                    ].map((stat, i) => (
-                     <div key={i} className="bg-white/5 p-8 rounded-[32px] border border-white/5 relative overflow-hidden group">
+                     <div key={i} className="bg-[var(--border-color)] p-8 rounded-[32px] border border-[var(--border-color)] relative overflow-hidden group">
                         <stat.icon size={20} className={`${stat.color} mb-4`} />
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</p>
-                        <p className="text-2xl font-black text-white mt-1">{stat.val}</p>
-                        {stat.delta !== null && <div className={`mt-3 text-[10px] font-black flex items-center gap-1 ${Number(stat.delta) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{Number(stat.delta) >= 0 ? '+' : ''}{stat.delta}% so với Toàn bộ</div>}
+                        <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">{stat.label}</p>
+                        <p className="text-2xl font-black text-[var(--text-main)] mt-1">{stat.val}</p>
+                        {stat.delta !== null && <div className={`mt-3 text-[10px] font-black flex items-center gap-1 ${Number(stat.delta) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{Number(stat.delta) >= 0 ? '+' : ''}{stat.delta}%</div>}
                      </div>
                    ))}
                 </div>
                 <div className="mb-12">
-                   <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 flex items-center gap-3"><Target size={16} className="text-indigo-500" /> Điểm chuẩn Hiệu suất</h5>
+                   <h5 className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-[0.3em] mb-8 flex items-center gap-3"><Target size={16} className="text-indigo-500" /> Điểm chuẩn Hiệu suất</h5>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                      <div className="space-y-8 bg-white/[0.02] p-8 rounded-[40px] border border-white/5">
-                        <div className="flex justify-between items-center"><span className="text-sm font-bold text-white">Hiệu quả Consumption</span><span className="text-[10px] font-black text-slate-500 uppercase">Bài viết vs Danh mục</span></div>
+                      <div className="space-y-8 bg-[var(--card-bg)] p-8 rounded-[40px] border border-[var(--border-color)] shadow-sm">
+                        <div className="flex justify-between items-center"><span className="text-sm font-bold text-[var(--text-main)]">Hiệu quả Consumption</span><span className="text-[10px] font-black text-[var(--text-muted)] uppercase">Bài viết vs Danh mục</span></div>
                         <div className="space-y-4">
                            <div className="relative pt-1">
-                              <div className="flex items-center justify-between mb-2"><div className="text-[10px] font-black text-emerald-400 uppercase">Nội dung đã chọn</div><div className="text-[10px] font-black text-white">{Math.round(selectedArticle.Consumption_Rate * 100)}%</div></div>
-                              <div className="overflow-hidden h-2 text-xs flex rounded-full bg-white/5"><div style={{ width: `${selectedArticle.Consumption_Rate * 100}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-emerald-500"></div></div>
+                              <div className="flex items-center justify-between mb-2"><div className="text-[10px] font-black text-emerald-500 uppercase">Nội dung đã chọn</div><div className="text-[10px] font-black text-[var(--text-main)]">{Math.round(selectedArticle.Consumption_Rate * 100)}%</div></div>
+                              <div className="overflow-hidden h-2 text-xs flex rounded-full bg-[var(--border-color)]"><div style={{ width: `${selectedArticle.Consumption_Rate * 100}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-emerald-500"></div></div>
                            </div>
                            <div className="relative pt-1">
-                              <div className="flex items-center justify-between mb-2"><div className="text-[10px] font-black text-slate-500 uppercase">Trung bình Toàn bộ</div><div className="text-[10px] font-black text-white">{Math.round(averages.consumption * 100)}%</div></div>
-                              <div className="overflow-hidden h-2 text-xs flex rounded-full bg-white/5"><div style={{ width: `${averages.consumption * 100}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-slate-700"></div></div>
+                              <div className="flex items-center justify-between mb-2"><div className="text-[10px] font-black text-[var(--text-muted)] uppercase">Trung bình Toàn bộ</div><div className="text-[10px] font-black text-[var(--text-main)]">{Math.round(averages.consumption * 100)}%</div></div>
+                              <div className="overflow-hidden h-2 text-xs flex rounded-full bg-[var(--border-color)]"><div style={{ width: `${averages.consumption * 100}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-slate-500"></div></div>
                            </div>
                         </div>
                       </div>
-                      <div className="bg-white/5 p-8 rounded-[40px] border border-white/5 flex flex-col justify-center">
-                         <div className="flex items-center gap-4 mb-6"><div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400"><PieChart size={24} /></div><div><p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Bối cảnh Topic</p><h4 className="text-white font-bold">{selectedArticle.Topic_Level_1}</h4></div></div>
-                         <p className="text-slate-400 text-xs leading-relaxed italic">Bài viết này chiếm {((selectedArticle.PVs / (topicData.find(t => t.name === selectedArticle.Topic_Level_1)?.pvs || 1)) * 100).toFixed(1)}% tổng lưu lượng trong phân khúc "{selectedArticle.Topic_Level_1}".</p>
+                      <div className="bg-[var(--border-color)] p-8 rounded-[40px] border border-[var(--border-color)] flex flex-col justify-center">
+                         <div className="flex items-center gap-4 mb-6"><div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><PieChart size={24} /></div><div><p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Bối cảnh Topic</p><h4 className="text-[var(--text-main)] font-bold">{selectedArticle.Topic_Level_1}</h4></div></div>
+                         <p className="text-[var(--text-muted)] text-xs leading-relaxed">Bài viết này chiếm {((selectedArticle.PVs / (topicData.find(t => t.name === selectedArticle.Topic_Level_1)?.pvs || 1)) * 100).toFixed(1)}% tổng lưu lượng trong phân khúc.</p>
                       </div>
                    </div>
                 </div>
-                <div className="bg-indigo-600/5 rounded-[40px] border border-indigo-500/10 p-12 relative overflow-hidden">
+                <div className="bg-indigo-500/5 rounded-[40px] border border-indigo-500/10 p-12 relative overflow-hidden">
                    <div className="absolute top-0 right-0 p-8 text-indigo-500/10"><BrainCircuit size={150} /></div>
                    <div className="relative z-10">
-                      <div className="flex items-center gap-3 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.4em] mb-10"><Sparkles size={18} /><span>Độc quyền Trí tuệ Gemini</span></div>
-                      {isInsightLoading ? (<div className="space-y-6"><div className="h-4 bg-white/5 rounded-full w-full animate-pulse"></div><div className="h-4 bg-white/5 rounded-full w-3/4 animate-pulse"></div></div>) : articleInsight ? (
+                      <div className="flex items-center gap-3 text-indigo-500 font-bold text-[10px] uppercase tracking-[0.4em] mb-10"><Sparkles size={18} /><span>Độc quyền Trí tuệ Gemini</span></div>
+                      {isInsightLoading ? (<div className="space-y-6"><div className="h-4 bg-indigo-500/10 rounded-full w-full animate-pulse"></div><div className="h-4 bg-indigo-500/10 rounded-full w-3/4 animate-pulse"></div></div>) : articleInsight ? (
                         <div className="grid gap-12">
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                              <div><h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Chân dung Khán giả</h5><p className="text-white font-bold leading-relaxed text-lg">{articleInsight.audiencePersona}</p></div>
-                              <div><h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Thẻ điểm Điều hành</h5><div className="inline-block px-4 py-2 bg-white/10 rounded-xl text-indigo-300 font-black tracking-widest uppercase">{articleInsight.performanceScore}</div></div>
+                              <div><h5 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">Chân dung Khán giả</h5><p className="text-[var(--text-main)] font-bold leading-relaxed text-lg">{articleInsight.audiencePersona}</p></div>
+                              <div><h5 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">Thẻ điểm Điều hành</h5><div className="inline-block px-4 py-2 bg-indigo-500 text-white rounded-xl text-[11px] font-black tracking-widest uppercase">{articleInsight.performanceScore}</div></div>
                            </div>
-                           <div className="border-t border-white/5 pt-12">
-                              <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Cơ hội Tăng trưởng</h5><p className="text-slate-400 text-base leading-relaxed mb-8">{articleInsight.growthOpportunity}</p>
-                              <div className="bg-white/5 p-8 rounded-3xl border border-white/5">
-                                 <p className="text-indigo-400 font-black text-[10px] uppercase tracking-[0.3em] mb-4">Điểm mấu chốt Chiến lược</p>
-                                 <p className="text-white font-black text-xl leading-snug italic">"{articleInsight.strategicTakeaway}"</p>
+                           <div className="border-t border-[var(--border-color)] pt-12">
+                              <h5 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">Cơ hội Tăng trưởng</h5><p className="text-[var(--text-muted)] text-base leading-relaxed mb-8">{articleInsight.growthOpportunity}</p>
+                              <div className="bg-[var(--sidebar-bg)] p-8 rounded-3xl border border-[var(--border-color)]">
+                                 <p className="text-indigo-500 font-black text-[10px] uppercase tracking-[0.3em] mb-4">Điểm mấu chốt Chiến lược</p>
+                                 <p className="text-[var(--text-main)] font-black text-xl leading-snug">"{articleInsight.strategicTakeaway}"</p>
                               </div>
                            </div>
                         </div>
@@ -398,13 +393,13 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
       {theRest.length > 0 && (
         <div className="mt-32">
           <div className="flex items-center justify-between mb-10 px-2">
-            <div className="flex items-center gap-5"><h4 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-4"><div className="w-2 h-8 bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>Kho Lưu trữ Catalog</h4><span className="px-4 py-1.5 bg-white/5 rounded-full text-[11px] font-black text-slate-500 uppercase tracking-widest border border-white/5">{theRest.length} Tài sản Nội dung</span></div>
-            <button onClick={() => setIsExpanded(!isExpanded)} className="group flex items-center gap-4 px-8 py-4 rounded-[20px] bg-white/5 border border-white/10 text-[11px] font-black text-white hover:bg-indigo-600 hover:border-indigo-500 transition-all shadow-2xl">
-              {isExpanded ? <>Thu gọn Kho lưu trữ <ChevronUp size={18} className="group-hover:-translate-y-1 transition-transform" /></> : <>Phân tích Kho lưu trữ <ChevronDown size={18} className="group-hover:translate-y-1 transition-transform" /></>}
+            <div className="flex items-center gap-5"><h4 className="text-2xl font-black text-[var(--text-main)] uppercase tracking-tighter flex items-center gap-4"><div className="w-2 h-8 bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>Kho Lưu trữ Catalog</h4><span className="px-4 py-1.5 bg-[var(--border-color)] rounded-full text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest border border-[var(--border-color)]">{theRest.length} Tài sản Nội dung</span></div>
+            <button onClick={() => setIsExpanded(!isExpanded)} className="group flex items-center gap-4 px-8 py-4 rounded-[20px] bg-indigo-600 text-white text-[11px] font-black hover:bg-indigo-500 transition-all shadow-xl">
+              {isExpanded ? <>Thu gọn Kho lưu trữ <ChevronUp size={18} /></> : <>Phân tích Kho lưu trữ <ChevronDown size={18} /></>}
             </button>
           </div>
           <div className={`overflow-hidden transition-all duration-700 ease-in-out ${isExpanded ? 'max-h-[8000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="glass-card rounded-[48px] overflow-hidden border border-white/5 bg-[#080808]/80 backdrop-blur-3xl"><div className="overflow-x-auto"><table className="w-full text-left border-collapse"><thead><tr className="bg-white/[0.04]"><th className="px-10 py-8 text-[11px] font-black text-slate-500 uppercase tracking-widest w-[160px]">Thứ tự</th><th className="px-10 py-8 text-[11px] font-black text-slate-500 uppercase tracking-widest w-[40%]">Nội dung Phân tích</th>{[{ label: 'Lượt xem', key: 'PVs' }, { label: 'Plays', key: 'Total_Play' }, { label: 'Users', key: 'User' }, { label: 'Consumption', key: 'Consumption_Rate' }].map(col => (<th key={col.key} className="px-10 py-8 text-[11px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-indigo-400 transition-colors" onClick={() => toggleSort(col.key as keyof DataRow)}><div className="flex items-center gap-2">{col.label}{sortField === col.key && (<span className="text-indigo-500">{sortDir === 'desc' ? '↓' : '↑'}</span>)}</div></th>))}</tr></thead><tbody className="divide-y divide-white/5">
+            <div className="glass-card rounded-[48px] overflow-hidden bg-[var(--sidebar-bg)] shadow-sm"><div className="overflow-x-auto"><table className="w-full text-left border-collapse"><thead><tr className="bg-[var(--border-color)]"><th className="px-10 py-8 text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest w-[160px]">Thứ tự</th><th className="px-10 py-8 text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest w-[40%]">Nội dung Phân tích</th>{[{ label: 'Lượt xem', key: 'PVs' }, { label: 'Plays', key: 'Total_Play' }, { label: 'Users', key: 'User' }, { label: 'Consumption', key: 'Consumption_Rate' }].map(col => (<th key={col.key} className="px-10 py-8 text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-indigo-500 transition-colors" onClick={() => toggleSort(col.key as keyof DataRow)}><div className="flex items-center gap-2">{col.label}{sortField === col.key && (<span className="text-indigo-500">{sortDir === 'desc' ? '↓' : '↑'}</span>)}</div></th>))}</tr></thead><tbody className="divide-y divide-[var(--border-color)]">
                 {theRest.map((row, idx) => {
                   let thumb = row.thumbnail;
                   if (!thumb || thumb === 'N/A' || thumb.includes('logo-vne')) {
@@ -413,13 +408,13 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
                     thumb = FALLBACK_IMAGES[hash % FALLBACK_IMAGES.length];
                   }
                   return (
-                    <tr key={idx} className="hover:bg-white/[0.03] transition-all group cursor-pointer" onClick={() => handleArticleClick({...row, thumbnail: thumb})}>
-                      <td className="px-10 py-8"><div className="flex items-center gap-5"><span className="text-base font-black text-slate-700 w-8">#{idx + 11}</span><span className="px-3 py-1.5 bg-white/5 rounded-xl text-[10px] font-mono font-bold text-indigo-300 border border-white/5">{row.article_id}</span></div></td>
-                      <td className="px-10 py-8"><div className="flex flex-col"><span className="text-[15px] font-bold text-white truncate max-w-xl group-hover:text-indigo-400 transition-all flex items-center gap-3">{row.Title}<ExternalLink size={14} className="opacity-0 group-hover:opacity-100 transition-opacity text-indigo-500 shrink-0" /></span><div className="flex items-center gap-4 mt-2"><span className="text-[10px] text-indigo-500/80 font-black uppercase tracking-widest">{row.CateName}</span><span className="w-1.5 h-1.5 bg-slate-800 rounded-full"></span><div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black text-white uppercase tracking-widest ${getContentCategory(row).color}`}>{getContentCategory(row).label}</div></div></div></td>
-                      <td className="px-10 py-8 text-sm font-black text-slate-300">{row.PVs.toLocaleString()}</td>
-                      <td className="px-10 py-8 text-sm font-medium text-slate-400">{row.Total_Play.toLocaleString()}</td>
-                      <td className="px-10 py-8 text-sm font-medium text-slate-400"><div className="flex items-center gap-2"><Users size={16} className="text-slate-600" />{row.User.toLocaleString()}</div></td>
-                      <td className="px-10 py-8"><div className="flex items-center gap-4"><span className="text-sm font-black text-emerald-400 w-12">{Math.round(row.Consumption_Rate * 100)}%</span><div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden max-w-[80px]"><div className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500" style={{ width: `${row.Consumption_Rate * 100}%` }}></div></div></div></td>
+                    <tr key={idx} className="hover:bg-indigo-500/5 transition-all group cursor-pointer" onClick={() => handleArticleClick({...row, thumbnail: thumb})}>
+                      <td className="px-10 py-8"><div className="flex items-center gap-5"><span className="text-base font-black text-[var(--text-muted)] w-8">#{idx + 11}</span><span className="px-3 py-1.5 bg-[var(--border-color)] rounded-xl text-[10px] font-mono font-bold text-indigo-500 border border-[var(--border-color)]">{row.article_id}</span></div></td>
+                      <td className="px-10 py-8"><div className="flex flex-col"><span className="text-[15px] font-bold text-[var(--text-main)] truncate max-w-xl group-hover:text-indigo-500 transition-all flex items-center gap-3">{row.Title}<ExternalLink size={14} className="opacity-0 group-hover:opacity-100 transition-opacity text-indigo-500 shrink-0" /></span><div className="flex items-center gap-4 mt-2"><span className="text-[10px] text-indigo-500 font-black uppercase tracking-widest">{row.CateName}</span><span className="w-1.5 h-1.5 bg-slate-400 rounded-full opacity-20"></span><div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black text-white uppercase tracking-widest ${getContentCategory(row).color}`}>{getContentCategory(row).label}</div></div></div></td>
+                      <td className="px-10 py-8 text-sm font-black text-[var(--text-main)]">{row.PVs.toLocaleString()}</td>
+                      <td className="px-10 py-8 text-sm font-medium text-[var(--text-muted)]">{row.Total_Play.toLocaleString()}</td>
+                      <td className="px-10 py-8 text-sm font-medium text-[var(--text-muted)]"><div className="flex items-center gap-2"><Users size={16} className="text-slate-400" />{row.User.toLocaleString()}</div></td>
+                      <td className="px-10 py-8"><div className="flex items-center gap-4"><span className="text-sm font-black text-emerald-500 w-12">{Math.round(row.Consumption_Rate * 100)}%</span><div className="flex-1 h-1.5 bg-[var(--border-color)] rounded-full overflow-hidden max-w-[80px]"><div className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500" style={{ width: `${row.Consumption_Rate * 100}%` }}></div></div></div></td>
                     </tr>
                   );
                 })}
@@ -428,18 +423,17 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
         </div>
       )}
 
-      {/* Topic Portfolio section */}
       <div className="mt-32 px-2">
          <div className="flex items-center gap-5 mb-12">
-            <h4 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-4">
+            <h4 className="text-2xl font-black text-[var(--text-main)] uppercase tracking-tighter flex items-center gap-4">
               <div className="w-2 h-8 bg-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
               Kiểm định Topic Content
             </h4>
-            <span className="px-4 py-1.5 bg-white/5 rounded-full text-[11px] font-black text-slate-500 uppercase tracking-widest border border-white/5">Phân tích Portfolio</span>
+            <span className="px-4 py-1.5 bg-[var(--border-color)] rounded-full text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest border border-[var(--border-color)]">Phân tích Portfolio</span>
          </div>
          
-         <div className="glass-card p-12 rounded-[48px] border border-white/5 bg-[#080808]/80 backdrop-blur-3xl overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+         <div className="glass-card p-6 md:p-12 rounded-[48px] overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
                <Globe size={300} />
             </div>
             
@@ -453,7 +447,7 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
                              <stop offset="100%" stopColor="#6366f1" stopOpacity={0.1}/>
                           </linearGradient>
                        </defs>
-                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)"} />
                        <XAxis 
                           dataKey="name" 
                           axisLine={false} 
@@ -479,7 +473,7 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
                           label={{ value: 'TB CONSUMPTION %', angle: 90, position: 'insideRight', fill: '#10b981', fontSize: 9, fontWeight: 900 }}
                        />
                        <RechartsTooltip 
-                          contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: '#fff' }}
+                          contentStyle={{ backgroundColor: isLight ? '#fff' : '#0f172a', border: `1px solid ${isLight ? '#eee' : 'rgba(255,255,255,0.1)'}`, borderRadius: '16px', color: isLight ? '#0F172A' : '#fff' }}
                           itemStyle={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}
                           formatter={(value: any, name: string) => {
                             if (name === 'pvsM') return [value.toFixed(2) + ' Triệu', 'Lượt xem'];
@@ -502,20 +496,20 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
                </div>
                
                <div className="lg:col-span-4 flex flex-col justify-center space-y-8">
-                  <div className="bg-white/5 p-8 rounded-[32px] border border-white/5">
+                  <div className="bg-indigo-500/5 p-8 rounded-[32px] border border-indigo-500/10">
                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Insight Chiến lược</p>
-                     <p className="text-white font-bold leading-relaxed">
-                        Chủ đề <span className="text-indigo-400">"{topicData[0]?.name}"</span> là động lực chính về traffic, nhưng hãy chú ý các Topic có đường màu xanh ngọc cao để tìm ra nhóm nội dung có hiệu quả retention (consumption) vượt trội.
+                     <p className="text-[var(--text-main)] font-bold leading-relaxed">
+                        Chủ đề <span className="text-indigo-500">"{topicData[0]?.name}"</span> là động lực chính về traffic, tập trung tối ưu retention cho nhóm này.
                      </p>
                   </div>
                   <div className="space-y-4">
                      {topicData.slice(0, 3).map((t, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 bg-white/[0.02] rounded-2xl border border-white/5">
+                        <div key={i} className="flex items-center justify-between p-4 bg-[var(--border-color)] rounded-2xl border border-[var(--border-color)]">
                            <div className="flex items-center gap-3">
-                              <span className="text-[10px] font-black text-slate-600">#{i+1}</span>
-                              <span className="text-sm font-bold text-slate-300">{t.name}</span>
+                              <span className="text-[10px] font-black text-slate-400">#{i+1}</span>
+                              <span className="text-sm font-bold text-[var(--text-main)]">{t.name}</span>
                            </div>
-                           <span className="text-[10px] font-black text-indigo-400">{t.pvsM.toFixed(2)}M PVs</span>
+                           <span className="text-[10px] font-black text-indigo-500">{t.pvsM.toFixed(2)}M PVs</span>
                         </div>
                      ))}
                   </div>
@@ -523,14 +517,6 @@ const ArticleTable: React.FC<ArticleTableProps> = ({ data }) => {
             </div>
          </div>
       </div>
-      
-      {allProcessed.length === 0 && (
-        <div className="p-40 text-center flex flex-col items-center">
-          <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-8 border border-white/5"><BarChart3 className="text-slate-700" size={48} /></div>
-          <h3 className="text-white font-black text-2xl uppercase tracking-tighter italic">Không tìm thấy Nội dung</h3>
-          <p className="text-slate-600 text-sm font-bold uppercase tracking-widest mt-3">Điều chỉnh tham số tìm kiếm để có insight sâu hơn</p>
-        </div>
-      )}
     </div>
   );
 };
